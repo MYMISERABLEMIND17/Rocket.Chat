@@ -1,6 +1,7 @@
 import { Box, Button } from '@rocket.chat/fuselage';
 import { FieldGroup, TextInput, Field, FieldLabel, FieldRow, FieldError } from '@rocket.chat/fuselage-forms';
 import { GenericModal } from '@rocket.chat/ui-client';
+import type { TranslationKey } from '@rocket.chat/ui-contexts';
 import { useToastMessageDispatch, useEndpoint } from '@rocket.chat/ui-contexts';
 import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -26,6 +27,12 @@ export type TwoFactorEmailModalProps = {
 
 type TwoFactorEmailFormData = {
 	code: string;
+};
+
+const resendErrorMessages: Record<string, TranslationKey> = {
+	'error-challenge-expired': 'Two-factor_authentication_expired',
+	'error-challenge-not-found': 'Two-factor_authentication_expired',
+	'error-email-code-cooldown': 'Two-factor_email_code_cooldown',
 };
 
 const TwoFactorEmailModal = ({ onConfirm, onClose, invalidAttempt, emailOrUsername, challengeId }: TwoFactorEmailModalProps) => {
@@ -65,10 +72,10 @@ const TwoFactorEmailModal = ({ onConfirm, onClose, invalidAttempt, emailOrUserna
 			dispatchToastMessage({ type: 'success', message: t('Email_sent') });
 		} catch (error) {
 			const { errorType } = error as { errorType?: string };
-			const expired = errorType === 'error-challenge-expired' || errorType === 'error-challenge-not-found';
+			const knownError = errorType && resendErrorMessages[errorType];
 			dispatchToastMessage({
 				type: 'error',
-				message: expired ? t('Two-factor_authentication_expired') : t('error-email-send-failed', { message: error }),
+				message: knownError ? t(knownError) : t('error-email-send-failed', { message: error }),
 			});
 		}
 	};

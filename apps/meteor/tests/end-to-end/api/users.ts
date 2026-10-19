@@ -6664,6 +6664,47 @@ describe('[Users]', () => {
 
 				expect(await storedCode()).to.not.equal('pending-code');
 			});
+
+			it('should tell a logged-in user to wait when another code is requested within a minute', async () => {
+				await seedPendingCode(new Date());
+				const userCredentials = await login(user.username, password);
+
+				await request
+					.post(api('users.2fa.sendEmailCode'))
+					.set(userCredentials)
+					.send({ emailOrUsername: user.username })
+					.expect(400)
+					.expect((res: Response) => {
+						expect(res.body).to.have.property('errorType', 'error-email-code-cooldown');
+					});
+
+				expect(await storedCode()).to.equal('pending-code');
+			});
+
+			it('should tell a login with a challenge to wait when another code is requested within a minute', async () => {
+				await seedPendingCode(new Date());
+				const challengeId = `resend-${Date.now()}`;
+				await withDatabase((db) =>
+					db.collection('rocketchat_two_factor_challenges').insertOne({
+						_id: challengeId as any,
+						userId: user._id,
+						method: 'email',
+						purpose: 'resend',
+						createdAt: new Date(),
+						expireAt: new Date(Date.now() + 60_000),
+					}),
+				);
+
+				await request
+					.post(api('twoFactorChallenges.sendEmailCode'))
+					.send({ challengeId })
+					.expect(400)
+					.expect((res: Response) => {
+						expect(res.body).to.have.property('errorType', 'error-email-code-cooldown');
+					});
+
+				expect(await storedCode()).to.equal('pending-code');
+			});
 		});
 	});
 

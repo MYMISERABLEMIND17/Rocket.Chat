@@ -1612,7 +1612,9 @@ API.v1
 				return API.v1.success();
 			}
 
-			await emailCheck.sendEmailCode(user);
+			if (!(await emailCheck.sendEmailCode(user)) && this.userId) {
+				return API.v1.failure('A code was sent less than a minute ago', 'error-email-code-cooldown');
+			}
 
 			return API.v1.success();
 		},

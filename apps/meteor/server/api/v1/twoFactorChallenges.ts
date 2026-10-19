@@ -42,7 +42,9 @@ API.v1.addRoute(
 				throw new Meteor.Error('error-user-not-found', 'user not found');
 			}
 
-			await emailCheckForOAuth.sendEmailCode(user);
+			if (!(await emailCheckForOAuth.sendEmailCode(user))) {
+				throw new Meteor.Error('error-email-code-cooldown', 'A code was sent less than a minute ago');
+			}
 
 			return API.v1.success();
 		},
